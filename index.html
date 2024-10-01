@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="zh-tw">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>測試登入 Soetek Java Team</title>
+
+    <!-- Bootstrap CSS 5.1.1 -->
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.1/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+      integrity="sha384-F3w7mX95PdgyTmZZMECAngseQB83DfGTowi0iMjiWaeVhAn4FJkqJByhZMI3AhiU"
+      crossorigin="anonymous"
+    />
+
+    <!-- Bootstrap JS 5.1.1 -->
+    <script
+      src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.1/dist/js/bootstrap.bundle.min.js"
+      integrity="sha384-/bQdsTh/da6pkI1MST/rWKFNjaCP5gBSY4sEBT38Q/9RBh9AH40zEOg7Hlq2THRZ"
+      crossorigin="anonymous"
+    ></script>
+
+    <!-- vue 3  -->
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+
+    <!-- axios 1.7.7 -->
+    <script
+      src="https://cdnjs.cloudflare.com/ajax/libs/axios/1.7.7/axios.js"
+      integrity="sha512-luUnkeG+uabiT2pZdi5ME5uADvq+FpDs2fK5V0nVXrHCND9F077fKaE9W//oJvGnWSmwQmCau63A6s3um1NZmg=="
+      crossorigin="anonymous"
+      referrerpolicy="no-referrer"
+    ></script>
+  </head>
+  <body>
+    <div id="app">
+      <!-- Header -->
+      <header class="p-3 bg-dark text-white">
+        <div class="container">
+          <div
+            class="d-flex flex-wrap align-items-center justify-content-center justify-content-lg-start"
+          >
+            <div class="col fs-5">
+              你現在看到的是 Soetek BA Java Team 的登入測試頁面
+            </div>
+          </div>
+        </div>
+      </header>
+      <div class="container col-xl-10 col-xxl-8 px-4">
+        <div class="row align-items-center g-lg-5 py-4">
+          <div class="col-lg-7 text-center text-lg-start">
+            <div class="mb-4">
+              <div class="row align-items-center mb-2">
+                <div class="col-3">Form API:</div>
+                <div class="col">
+                  <input type="search" class="form-control" v-model="formAPI" />
+                </div>
+              </div>
+              <div class="row align-items-center">
+                <div class="col-3">M365 API:</div>
+                <div class="col">
+                  <input
+                    disabled
+                    type="search"
+                    class="form-control"
+                    v-model="m365API"
+                  />
+                </div>
+              </div>
+            </div>
+            <div>
+              <ol>
+                <li>可在上方修改後端 API 路徑</li>
+                <li>所有修改都會暫存，可用右方功能鍵清除</li>
+                <li>登入結果會回傳在下方</li>
+                <li>有任何問題請聯繫 Allen</li>
+              </ol>
+            </div>
+
+            <hr />
+
+            <div
+              class="fs-3"
+              :class="{'text-success':!isLoginError,'text-danger':isLoginError}"
+            >
+              {{loggedInMessage}}
+            </div>
+          </div>
+          <div class="col-md-10 mx-auto col-lg-5">
+            <div class="p-4 p-md-5 border rounded-3 bg-light">
+              <button @click="clearAccountStorage" class="me-2">
+                清除帳密暫存
+              </button>
+              <button @click="clearApiStorage">清除API暫存</button>
+              <hr />
+
+              <div class="form-floating mb-3">
+                <input
+                  type="email"
+                  class="form-control"
+                  placeholder="name@example.com"
+                  v-model.lazy="account"
+                />
+                <label for="floatingInput">帳號</label>
+              </div>
+              <div class="form-floating mb-3">
+                <input
+                  type="text"
+                  class="form-control"
+                  placeholder="Password"
+                  v-model.lazy="password"
+                />
+                <label for="floatingPassword">密碼</label>
+              </div>
+
+              <button class="w-100 btn btn-lg btn-primary" @click="loginByForm">
+                登入
+              </button>
+              <hr class="my-4" />
+              <small>或使用第三方登入</small>
+              <div>
+                <img
+                  src="./m365.svg"
+                  style="cursor: pointer"
+                  @click="loginByM365"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <script>
+      const { createApp, ref, watch, onMounted } = Vue;
+
+      createApp({
+        setup() {
+          /*========== 變數 ==========*/
+          const formAPI = ref("http://localhost:8080/form");
+          const m365API = ref("http://localhost:8080/m365");
+          const loggedInMessage = ref("尚未登入");
+          const account = ref("UserA");
+          const password = ref("1234");
+          const isLoginError = ref(false);
+
+          /*========== init ==========*/
+          onMounted(() => {
+            // 復原暫存帳密
+            const accountFromLocalStorage = localStorage.getItem("account");
+            const passwordFromLocalStorage = localStorage.getItem("password");
+
+            if (accountFromLocalStorage) {
+              account.value = accountFromLocalStorage;
+            }
+
+            if (passwordFromLocalStorage) {
+              password.value = passwordFromLocalStorage;
+            }
+
+            // 復原暫存API
+            const formAPIFromLocalStorage = localStorage.getItem("formAPI");
+            const m365APIFromLocalStorage = localStorage.getItem("m365API");
+
+            if (formAPIFromLocalStorage) {
+              formAPI.value = formAPIFromLocalStorage;
+            }
+
+            if (m365APIFromLocalStorage) {
+              m365API.value = passwordFromLocalStorage;
+            }
+          });
+
+          /*========== 方法 ==========*/
+          async function loginByForm() {
+            const fd = new FormData();
+            fd.append("account", account.value);
+            fd.append("password", password.value);
+
+            axios
+              .post(formAPI.value, fd)
+              .then((rs) => {
+                console.log(rs);
+                loggedInMessage.value = `登入成功，後端回傳值: ${rs.data}`;
+                isLoginError.value = false;
+              })
+              .catch((error) => {
+                console.log(error);
+                loggedInMessage.value = `登入失敗，錯誤訊息: ${error.message}`;
+                isLoginError.value = true;
+              });
+          }
+
+          async function loginByM365() {
+            alert("此功能尚未實作! 請與 Allen 討論細節。");
+          }
+
+          function clearAccountStorage() {
+            localStorage.removeItem("account");
+            localStorage.removeItem("password");
+            location.reload();
+          }
+
+          function clearApiStorage() {
+            localStorage.removeItem("formAPI");
+            localStorage.removeItem("m365API");
+            location.reload();
+          }
+
+          /*========== watch ==========*/
+          // 帳密
+          watch(account, (newVal) => {
+            localStorage.setItem("account", newVal);
+          });
+
+          watch(password, (newVal) => {
+            localStorage.setItem("password", newVal);
+          });
+
+          // API
+          watch(formAPI, (newVal) => {
+            localStorage.setItem("formAPI", newVal);
+          });
+
+          watch(m365API, (newVal) => {
+            localStorage.setItem("m365API", newVal);
+          });
+
+          return {
+            formAPI,
+            m365API,
+            loggedInMessage,
+            isLoginError,
+            loginByM365,
+            loginByForm,
+            account,
+            password,
+            clearAccountStorage,
+            clearApiStorage,
+          };
+        },
+      }).mount("#app");
+    </script>
+  </body>
+</html>
